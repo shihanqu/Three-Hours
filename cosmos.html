@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cosmos - An immersive journey through a procedurally generated universe. Explore stars, nebulae, and the infinite beauty of space.">
+    <title>Cosmos | An Interactive Universe</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">✦</div>
+            <h1>COSMOS</h1>
+            <p>Initializing universe...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <canvas id="cosmos"></canvas>
+
+    <!-- UI Overlay -->
+    <div id="ui-overlay">
+        <!-- Top Left - Logo -->
+        <div class="ui-corner top-left">
+            <div class="logo">
+                <span class="logo-symbol">✦</span>
+                <span class="logo-text">COSMOS</span>
+            </div>
+        </div>
+
+        <!-- Top Right - Stats -->
+        <div class="ui-corner top-right">
+            <div class="stats-panel glass">
+                <div class="stat">
+                    <span class="stat-label">Stars Discovered</span>
+                    <span class="stat-value" id="stars-discovered">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Distance Traveled</span>
+                    <span class="stat-value" id="distance-traveled">0 ly</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Left - Controls Info -->
+        <div class="ui-corner bottom-left">
+            <div class="controls-panel glass">
+                <div class="control-hint">
+                    <kbd>Drag</kbd> to rotate
+                </div>
+                <div class="control-hint">
+                    <kbd>Scroll</kbd> to zoom
+                </div>
+                <div class="control-hint">
+                    <kbd>Click</kbd> to discover stars
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Right - Audio Toggle -->
+        <div class="ui-corner bottom-right">
+            <button id="audio-toggle" class="glass-button">
+                <span class="audio-icon">🔇</span>
+                <span class="audio-label">Enable Audio</span>
+            </button>
+            <button id="warp-button" class="glass-button warp">
+                <span class="warp-icon">⚡</span>
+                <span class="warp-label">Warp Drive</span>
+            </button>
+        </div>
+
+        <!-- Center - Star Info Popup -->
+        <div id="star-info" class="star-info-panel glass hidden">
+            <button id="close-star-info" class="close-btn">×</button>
+            <div class="star-info-content">
+                <div class="star-visual">
+                    <div class="star-preview" id="star-preview"></div>
+                </div>
+                <div class="star-details">
+                    <h2 id="star-name">Unknown Star</h2>
+                    <div class="star-stats">
+                        <div class="star-stat">
+                            <span class="label">Type</span>
+                            <span class="value" id="star-type">-</span>
+                        </div>
+                        <div class="star-stat">
+                            <span class="label">Temperature</span>
+                            <span class="value" id="star-temp">-</span>
+                        </div>
+                        <div class="star-stat">
+                            <span class="label">Mass</span>
+                            <span class="value" id="star-mass">-</span>
+                        </div>
+                        <div class="star-stat">
+                            <span class="label">Age</span>
+                            <span class="value" id="star-age">-</span>
+                        </div>
+                    </div>
+                    <p class="star-description" id="star-description"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discovery Notification -->
+    <div id="discovery-notification" class="discovery-notification hidden">
+        <div class="discovery-icon">✨</div>
+        <div class="discovery-text">
+            <span class="discovery-label">NEW DISCOVERY</span>
+            <span class="discovery-name" id="discovery-name"></span>
+        </div>
+    </div>
+
+    <script src="cosmos.js"></script>
+</body>
+</html>
