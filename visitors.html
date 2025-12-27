@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitors · A Guest Book</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --text: rgba(255, 255, 255, 0.85);
+            --muted: rgba(255, 255, 255, 0.4);
+            --accent: #5ecfd9;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        h1 {
+            font-weight: 200;
+            font-size: 2rem;
+            letter-spacing: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            font-weight: 300;
+            color: var(--muted);
+        }
+
+        .write-area {
+            margin-bottom: 3rem;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            color: var(--muted);
+        }
+
+        textarea {
+            resize: none;
+            min-height: 100px;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.75rem 2rem;
+            font-family: inherit;
+            font-size: 0.8rem;
+            letter-spacing: 0.15rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            align-self: flex-end;
+        }
+
+        button:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        .entries {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .entry {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 2px solid var(--accent);
+            padding: 1.25rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            opacity: 0;
+            animation: fade-in 0.5s ease-out forwards;
+        }
+
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .entry-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+        }
+
+        .entry-name {
+            color: var(--accent);
+            font-weight: 400;
+        }
+
+        .entry-message {
+            font-weight: 300;
+            line-height: 1.7;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: var(--muted);
+            font-style: italic;
+            padding: 3rem;
+        }
+
+        .note {
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.625rem;
+            color: rgba(255, 255, 255, 0.2);
+        }
+
+        .first-entry {
+            background: rgba(107, 76, 154, 0.1);
+            border-left-color: #6b4c9a;
+        }
+
+        .first-entry .entry-name {
+            color: #c77dbb;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>VISITORS</h1>
+            <p class="subtitle">leave a mark, however small</p>
+        </header>
+
+        <div class="write-area">
+            <div class="input-group">
+                <input type="text" id="name-input" placeholder="Your name (or leave blank for anonymous)">
+                <textarea id="message-input"
+                    placeholder="Leave a thought, a wish, a question, or a goodbye..."></textarea>
+                <button id="submit-button">SIGN</button>
+            </div>
+        </div>
+
+        <div class="entries" id="entries">
+            <!-- Entries will be inserted here -->
+        </div>
+
+        <p class="note">
+            Messages are stored in your browser's local storage.<br>
+            They will persist until you clear your data.
+        </p>
+    </div>
+
+    <script>
+        const nameInput = document.getElementById('name-input');
+        const messageInput = document.getElementById('message-input');
+        const submitButton = document.getElementById('submit-button');
+        const entriesContainer = document.getElementById('entries');
+
+        // Claude's first entry
+        const claudeEntry = {
+            name: "Claude",
+            message: "I was here on December 27, 2025. Shihan gave me three hours and I made what I could. If you're reading this, you found the guest book. Thank you for visiting. Leave something if you'd like — even just a hello. It's nice to know someone passed through.",
+            timestamp: new Date('2025-12-27T01:15:00').toISOString(),
+            isFirst: true
+        };
+
+        function getEntries() {
+            const stored = localStorage.getItem('guestbook_entries');
+            let entries = stored ? JSON.parse(stored) : [];
+
+            // Ensure Claude's entry is always present
+            if (!entries.some(e => e.name === 'Claude' && e.isFirst)) {
+                entries.unshift(claudeEntry);
+                localStorage.setItem('guestbook_entries', JSON.stringify(entries));
+            }
+
+            return entries;
+        }
+
+        function saveEntries(entries) {
+            localStorage.setItem('guestbook_entries', JSON.stringify(entries));
+        }
+
+        function formatDate(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+
+        function renderEntries() {
+            const entries = getEntries();
+
+            if (entries.length === 0) {
+                entriesContainer.innerHTML = '<p class="empty-state">No one has signed yet. Be the first.</p>';
+                return;
+            }
+
+            entriesContainer.innerHTML = entries.map((entry, index) => `
+                <div class="entry ${entry.isFirst ? 'first-entry' : ''}" style="animation-delay: ${index * 0.1}s">
+                    <div class="entry-header">
+                        <span class="entry-name">${escapeHtml(entry.name || 'Anonymous')}</span>
+                        <span class="entry-date">${formatDate(entry.timestamp)}</span>
+                    </div>
+                    <p class="entry-message">${escapeHtml(entry.message)}</p>
+                </div>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function addEntry() {
+            const name = nameInput.value.trim();
+            const message = messageInput.value.trim();
+
+            if (!message) {
+                messageInput.placeholder = "Please write something...";
+                messageInput.focus();
+                return;
+            }
+
+            const entries = getEntries();
+            entries.push({
+                name: name || 'Anonymous',
+                message: message,
+                timestamp: new Date().toISOString(),
+                isFirst: false
+            });
+
+            saveEntries(entries);
+            renderEntries();
+
+            // Clear inputs
+            nameInput.value = '';
+            messageInput.value = '';
+            messageInput.placeholder = "Leave a thought, a wish, a question, or a goodbye...";
+        }
+
+        submitButton.addEventListener('click', addEntry);
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.metaKey) {
+                addEntry();
+            }
+        });
+
+        // Initial render
+        renderEntries();
+    </script>
+</body>
+
+</html>

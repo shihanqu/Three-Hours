@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nocturne · Generative Music</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --color-bg: #0a0a14;
+            --color-text: rgba(255, 255, 255, 0.8);
+            --color-muted: rgba(255, 255, 255, 0.4);
+            --color-accent: #6b4c9a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--color-bg);
+            color: var(--color-text);
+            font-family: 'Outfit', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            z-index: 10;
+        }
+
+        h1 {
+            font-weight: 200;
+            font-size: 2rem;
+            letter-spacing: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-weight: 300;
+            font-size: 0.75rem;
+            color: var(--color-muted);
+            letter-spacing: 0.2rem;
+            margin-bottom: 3rem;
+        }
+
+        #play-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--color-text);
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+        }
+
+        #play-button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        #play-button.playing {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(107, 76, 154, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 20px rgba(107, 76, 154, 0);
+            }
+        }
+
+        .info {
+            font-size: 0.75rem;
+            color: var(--color-muted);
+            max-width: 300px;
+            line-height: 1.6;
+        }
+
+        #visualizer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            opacity: 0.3;
+        }
+
+        .note-indicator {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.875rem;
+            color: var(--color-muted);
+            letter-spacing: 0.15rem;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="visualizer"></canvas>
+
+    <div class="container">
+        <h1>NOCTURNE</h1>
+        <div class="subtitle">generative music for late hours</div>
+
+        <button id="play-button">▶</button>
+
+        <p class="info">
+            Each performance is unique. The notes choose themselves,
+            guided by rules but never the same twice.
+        </p>
+    </div>
+
+    <div class="note-indicator" id="note-display">—</div>
+
+    <script>
+        // ================================
+        // Generative Music Engine (Fixed)
+        // ================================
+
+        let audioContext = null;
+        let masterGain = null;
+        let reverb = null;
+        let reverbGain = null;
+        let isPlaying = false;
+        let phraseTimeout = null;
+
+        // Musical scales
+        const scales = {
+            pentatonic: [0, 3, 5, 7, 10],
+            dorian: [0, 2, 3, 5, 7, 9, 10],
+            aeolian: [0, 2, 3, 5, 7, 8, 10]
+        };
+
+        const baseFreq = 130.81; // C3
+
+        // Current musical state
+        const state = {
+            scale: scales.pentatonic,
+            lastNote: 0
+        };
+
+        const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+        // Initialize audio context and effects
+        function initAudio() {
+            if (audioContext) return;
+
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            // Master gain
+            masterGain = audioContext.createGain();
+            masterGain.gain.value = 0.5;
+            masterGain.connect(audioContext.destination);
+
+            // Create reverb once (reuse it)
+            const sampleRate = audioContext.sampleRate;
+            const length = sampleRate * 3;
+            const impulse = audioContext.createBuffer(2, length, sampleRate);
+
+            for (let channel = 0; channel < 2; channel++) {
+                const channelData = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 2);
+                }
+            }
+
+            reverb = audioContext.createConvolver();
+            reverb.buffer = impulse;
+
+            reverbGain = audioContext.createGain();
+            reverbGain.gain.value = 0.3;
+
+            reverb.connect(reverbGain);
+            reverbGain.connect(audioContext.destination);
+
+            console.log('Audio initialized');
+        }
+
+        // Play a single note
+        function playNote(frequency, duration = 2, volume = 0.3, delay = 0) {
+            if (!audioContext) return;
+
+            const startTime = audioContext.currentTime + delay;
+
+            // Main oscillator
+            const osc = audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = frequency;
+
+            // Second oscillator for warmth
+            const osc2 = audioContext.createOscillator();
+            osc2.type = 'sine';
+            osc2.frequency.value = frequency * 1.003;
+
+            // Gain envelope
+            const gain = audioContext.createGain();
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(volume, startTime + 0.05);
+            gain.gain.setValueAtTime(volume, startTime + duration * 0.3);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+            // Connect to master and reverb
+            osc.connect(gain);
+            osc2.connect(gain);
+            gain.connect(masterGain);
+            gain.connect(reverb);
+
+            osc.start(startTime);
+            osc2.start(startTime);
+            osc.stop(startTime + duration + 0.1);
+            osc2.stop(startTime + duration + 0.1);
+
+            // Update display
+            const noteIndex = Math.round(12 * Math.log2(frequency / 261.63)) % 12;
+            const noteName = noteNames[(noteIndex + 12) % 12];
+            setTimeout(() => {
+                document.getElementById('note-display').textContent = noteName;
+            }, delay * 1000);
+        }
+
+        // Get a note from the scale
+        function getScaleNote(degree, octaveOffset = 0) {
+            const len = state.scale.length;
+            const index = ((degree % len) + len) % len;
+            const scaleNote = state.scale[index];
+            const octave = Math.floor(degree / len) + octaveOffset;
+            return baseFreq * Math.pow(2, (scaleNote + octave * 12) / 12);
+        }
+
+        // Choose next note
+        function chooseNextNote() {
+            const intervals = [-2, -1, 0, 1, 2, 3];
+            const weights = [0.1, 0.2, 0.15, 0.25, 0.2, 0.1];
+
+            const random = Math.random();
+            let cumulative = 0;
+            let interval = 0;
+
+            for (let i = 0; i < intervals.length; i++) {
+                cumulative += weights[i];
+                if (random < cumulative) {
+                    interval = intervals[i];
+                    break;
+                }
+            }
+
+            let newNote = state.lastNote + interval;
+            newNote = Math.max(-5, Math.min(10, newNote));
+            state.lastNote = newNote;
+
+            return newNote;
+        }
+
+        // Generate a phrase
+        function generatePhrase() {
+            if (!isPlaying) return;
+
+            console.log('Generating phrase...');
+
+            const phraseLength = 2 + Math.floor(Math.random() * 4);
+            const phraseDuration = 3 + Math.random() * 3;
+
+            // Sometimes play a chord
+            if (Math.random() < 0.35) {
+                const root = getScaleNote(chooseNextNote(), 0);
+                playNote(root, phraseDuration, 0.15);
+                playNote(root * Math.pow(2, 4 / 12), phraseDuration, 0.1);
+                playNote(root * Math.pow(2, 7 / 12), phraseDuration, 0.08);
+            }
+
+            // Generate melody notes
+            for (let i = 0; i < phraseLength; i++) {
+                if (Math.random() < 0.6 || i === 0) {
+                    const noteIndex = chooseNextNote();
+                    const freq = getScaleNote(noteIndex, 1);
+                    const delay = (i / phraseLength) * phraseDuration;
+                    const noteDuration = 1.5 + Math.random() * 2;
+                    const volume = 0.2 + Math.random() * 0.15;
+
+                    playNote(freq, noteDuration, volume, delay);
+                }
+            }
+
+            // Occasionally add a bass note
+            if (Math.random() < 0.3) {
+                const bassNote = getScaleNote(0, -1);
+                playNote(bassNote, phraseDuration * 1.2, 0.12, Math.random() * 1.5);
+            }
+
+            // Schedule next phrase
+            const nextPhraseDelay = phraseDuration * 0.6 + Math.random() * 2;
+            phraseTimeout = setTimeout(generatePhrase, nextPhraseDelay * 1000);
+
+            // Occasionally shift scale
+            if (Math.random() < 0.1) {
+                const scaleKeys = Object.keys(scales);
+                state.scale = scales[scaleKeys[Math.floor(Math.random() * scaleKeys.length)]];
+            }
+        }
+
+        // Visualizer
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function createParticle() {
+            return {
+                x: Math.random() * canvas.width,
+                y: canvas.height + 10,
+                size: 1 + Math.random() * 3,
+                speed: 0.3 + Math.random() * 0.7,
+                opacity: 0.2 + Math.random() * 0.4,
+                wobble: Math.random() * Math.PI * 2
+            };
+        }
+
+        function animateVisualizer() {
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (isPlaying && particles.length < 60 && Math.random() < 0.15) {
+                particles.push(createParticle());
+            }
+
+            particles = particles.filter(p => {
+                p.y -= p.speed;
+                p.x += Math.sin(p.wobble + p.y * 0.01) * 0.3;
+                p.wobble += 0.01;
+
+                if (p.y < -10) return false;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(107, 76, 154, ${p.opacity})`;
+                ctx.fill();
+
+                return true;
+            });
+
+            requestAnimationFrame(animateVisualizer);
+        }
+        animateVisualizer();
+
+        // Controls
+        const playButton = document.getElementById('play-button');
+
+        playButton.addEventListener('click', async () => {
+            // Initialize audio on first click
+            initAudio();
+
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            isPlaying = !isPlaying;
+            playButton.textContent = isPlaying ? '◼' : '▶';
+            playButton.classList.toggle('playing', isPlaying);
+
+            if (isPlaying) {
+                console.log('Starting music...');
+                generatePhrase();
+            } else {
+                if (phraseTimeout) {
+                    clearTimeout(phraseTimeout);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

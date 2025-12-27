@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oracle · Ask a Question</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a14;
+            --text: rgba(255, 255, 255, 0.85);
+            --muted: rgba(255, 255, 255, 0.4);
+            --accent: #c77dbb;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 300;
+            font-size: 2rem;
+            letter-spacing: 0.4rem;
+            margin-bottom: 0.5rem;
+            color: var(--accent);
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            font-style: italic;
+            color: var(--muted);
+            margin-bottom: 3rem;
+        }
+
+        .input-area {
+            margin-bottom: 2rem;
+        }
+
+        #question-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            font-family: inherit;
+            font-size: 1.1rem;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        #question-input::placeholder {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        #question-input:focus {
+            border-color: var(--accent);
+        }
+
+        #ask-button {
+            margin-top: 1.5rem;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 0.75rem 2rem;
+            font-family: inherit;
+            font-size: 0.875rem;
+            letter-spacing: 0.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        #ask-button:hover {
+            background: var(--accent);
+            color: var(--bg);
+        }
+
+        #response-area {
+            min-height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .response {
+            font-size: 1.25rem;
+            line-height: 1.8;
+            font-style: italic;
+            opacity: 0;
+            transition: opacity 1s ease;
+            max-width: 500px;
+        }
+
+        .response.visible {
+            opacity: 1;
+        }
+
+        .note {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.625rem;
+            color: rgba(255, 255, 255, 0.2);
+            text-align: center;
+            max-width: 400px;
+        }
+
+        /* Animation for thinking */
+        .thinking::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+
+            0%,
+            20% {
+                content: '.';
+            }
+
+            40% {
+                content: '..';
+            }
+
+            60%,
+            100% {
+                content: '...';
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>ORACLE</h1>
+        <p class="subtitle">ask a question, receive a reflection</p>
+
+        <div class="input-area">
+            <input type="text" id="question-input" placeholder="What would you like to know?">
+            <button id="ask-button">CONSULT</button>
+        </div>
+
+        <div id="response-area">
+            <p class="response" id="response"></p>
+        </div>
+    </div>
+
+    <p class="note">
+        This oracle does not predict the future. It offers perspectives.<br>
+        The wisdom (or nonsense) you find is shaped by the question you bring.
+    </p>
+
+    <script>
+        const responses = [
+            "The answer you seek is already within you. You came here to give yourself permission to hear it.",
+            "Not yet. But soon, perhaps. Patience is also an answer.",
+            "Yes, but not in the way you're imagining. Be open to a different form of arrival.",
+            "The question contains an assumption that isn't serving you. What if you let it go?",
+            "This path ends. Another begins. What matters is that you keep walking.",
+            "You're asking the wrong question. The right one is closer to your heart.",
+            "Trust the part of you that already decided before you asked.",
+            "Sometimes the universe answers by refusing to answer. Sit with the uncertainty.",
+            "What would you do if the answer was yes? Start there.",
+            "What would you do if the answer was no? Start there.",
+            "The obstacle isn't external. It's a story you're telling yourself. Edit the story.",
+            "Rest first. The clarity will come after you stop striving for it.",
+            "Someone is waiting for you to ask them this question instead of an oracle.",
+            "You already know. You're just afraid of what you know.",
+            "This too shall pass. And something will take its place. Let yourself grieve the transition.",
+            "Action will teach you what thinking cannot. Move, then reflect.",
+            "The timing isn't yours to control. But your preparation is.",
+            "You've been here before. Remember what you learned last time.",
+            "Forgive someone. (It might be yourself.)",
+            "The smallest step is still a step. Take it.",
+            "Your intuition is louder than your fear. Listen harder.",
+            "Something needs to end before this can begin. What are you holding onto?",
+            "Three breaths. Then decide. But take the breaths first.",
+            "The path of least resistance isn't always the coward's path. Sometimes it's wisdom.",
+            "What you're avoiding is exactly what you need to face.",
+            "Love is relevant here, even if the question didn't seem to be about love.",
+            "You're ready. You've been ready. Stop waiting for permission.",
+            "Not everything requires resolution. Some questions are meant to be carried, not answered.",
+            "The person you were couldn't have handled this. The person you're becoming can.",
+            "Pay attention to what you're feeling right now as you read these words. That's your answer.",
+            "Make something. The making will show you the way.",
+            "Be gentle with yourself. You're doing better than you realize.",
+            "The night has wisdom the day doesn't. Come back to this question at a different hour.",
+            "Say what you haven't been saying. The truth wants to be spoken.",
+            "Your body knows. Ask your body instead of your mind.",
+        ];
+
+        const questionInput = document.getElementById('question-input');
+        const askButton = document.getElementById('ask-button');
+        const responseEl = document.getElementById('response');
+
+        function getResponse() {
+            const question = questionInput.value.trim();
+            if (!question) {
+                responseEl.textContent = "You haven't asked anything yet.";
+                responseEl.classList.add('visible');
+                return;
+            }
+
+            // Hide previous response
+            responseEl.classList.remove('visible');
+
+            // Show thinking state
+            responseEl.textContent = 'Contemplating';
+            responseEl.classList.add('thinking', 'visible');
+
+            // Simulate delay
+            const delay = 1500 + Math.random() * 1500;
+
+            setTimeout(() => {
+                responseEl.classList.remove('thinking');
+
+                // Select a response (seeded by question for some consistency)
+                let hash = 0;
+                for (let i = 0; i < question.length; i++) {
+                    hash = ((hash << 5) - hash) + question.charCodeAt(i);
+                    hash = hash & hash;
+                }
+                const index = Math.abs(hash) % responses.length;
+
+                responseEl.textContent = `"${responses[index]}"`;
+            }, delay);
+        }
+
+        askButton.addEventListener('click', getResponse);
+        questionInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                getResponse();
+            }
+        });
+    </script>
+</body>
+
+</html>

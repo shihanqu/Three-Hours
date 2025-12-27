@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ephemera · A Listening Space</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0f0f14;
+            --text: rgba(255, 255, 255, 0.85);
+            --muted: rgba(255, 255, 255, 0.3);
+            --accent: #6b4c9a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            padding: 2rem 0 3rem;
+        }
+
+        h1 {
+            font-weight: 300;
+            font-size: 1.75rem;
+            letter-spacing: 0.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 0.875rem;
+            font-style: italic;
+            color: var(--muted);
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 700px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+        }
+
+        #writing-area {
+            width: 100%;
+            min-height: 400px;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 1.25rem;
+            line-height: 2;
+            resize: none;
+            outline: none;
+            padding: 0;
+            caret-color: var(--accent);
+        }
+
+        #writing-area::placeholder {
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .footer-info {
+            text-align: center;
+            padding: 2rem;
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .word-count {
+            position: fixed;
+            right: 2rem;
+            bottom: 2rem;
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-family: monospace;
+        }
+
+        /* Ambient pulse */
+        main::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(107, 76, 154, 0.03), transparent 70%);
+            pointer-events: none;
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        /* Fading text effect */
+        .fading-line {
+            transition: opacity 5s ease-out, color 5s ease-out;
+        }
+
+        .fading-line.fading {
+            opacity: 0;
+            color: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>EPHEMERA</h1>
+        <p class="tagline">a listening space — write, then let go</p>
+    </header>
+
+    <main>
+        <textarea id="writing-area" placeholder="Begin typing... your words will gently fade"></textarea>
+    </main>
+
+    <p class="footer-info">
+        Nothing here is saved. Your words exist only in this moment, then fade.<br>
+        It's okay to say what you need to say.
+    </p>
+
+    <div class="word-count" id="word-count">0 words</div>
+
+    <script>
+        const textarea = document.getElementById('writing-area');
+        const wordCountDisplay = document.getElementById('word-count');
+
+        let totalWordsReleased = 0;
+        let fadeTimeouts = [];
+        let lastLength = 0;
+        let fadeDelay = 15000; // 15 seconds before fading starts
+
+        // Track word count
+        textarea.addEventListener('input', () => {
+            const text = textarea.value;
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            updateWordCount(words.length);
+
+            // Schedule fading for new content
+            scheduleFade();
+        });
+
+        function updateWordCount(currentWords) {
+            wordCountDisplay.textContent = `${currentWords} words`;
+        }
+
+        function scheduleFade() {
+            // Clear any existing fade timeout
+            fadeTimeouts.forEach(t => clearTimeout(t));
+            fadeTimeouts = [];
+
+            // Schedule the fade
+            const timeout = setTimeout(() => {
+                fadeText();
+            }, fadeDelay);
+
+            fadeTimeouts.push(timeout);
+        }
+
+        function fadeText() {
+            const text = textarea.value;
+            if (!text.trim()) return;
+
+            // Count words that will be released
+            const words = text.trim().split(/\s+/).filter(w => w.length > 0);
+            totalWordsReleased += words.length;
+
+            // Animate the fade
+            textarea.style.transition = 'opacity 3s ease-out';
+            textarea.style.opacity = '0';
+
+            setTimeout(() => {
+                // Clear the text
+                textarea.value = '';
+                // Reset opacity
+                textarea.style.transition = 'none';
+                textarea.style.opacity = '1';
+
+                // Update word count
+                wordCountDisplay.textContent = `${totalWordsReleased} words released`;
+
+                // Force reflow
+                textarea.offsetHeight;
+                textarea.style.transition = '';
+            }, 3000);
+        }
+
+        // Also fade on blur (when user clicks away)
+        textarea.addEventListener('blur', () => {
+            if (textarea.value.trim()) {
+                // Give a shorter delay when leaving
+                setTimeout(() => {
+                    if (document.activeElement !== textarea && textarea.value.trim()) {
+                        fadeText();
+                    }
+                }, 5000);
+            }
+        });
+
+        // Focus on load
+        textarea.focus();
+
+        // Gentle ambient effect on the background
+        let phase = 0;
+        function ambientEffect() {
+            phase += 0.005;
+            const intensity = 0.02 + Math.sin(phase) * 0.01;
+            document.body.style.background = `radial-gradient(circle at 50% 40%, rgba(107, 76, 154, ${intensity}), #0f0f14 70%)`;
+            requestAnimationFrame(ambientEffect);
+        }
+        ambientEffect();
+    </script>
+</body>
+
+</html>
